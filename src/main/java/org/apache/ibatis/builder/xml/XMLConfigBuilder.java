@@ -103,31 +103,41 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   public Configuration parse() {
+    // MyBatis 的配置文件只能被解析一次，多次调用 parse() 会导致抛出异常
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    // 将解析结果封装为 Configuration 对象
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
 
   private void parseConfiguration(XNode root) {
     try {
+      // 逐个解析配置文件中的每个节点
+      // 整个配置文件的解析有严格的顺序，例如 propertiesElement 必须先解析，因为后续节点可能会引用属性占位符 ${}。
+      // 同样，environmentsElement 依赖于对象工厂的解析，因此需要在对象工厂解析后执行。
       // issue #117 read properties first
       propertiesElement(root.evalNode("properties"));
       Properties settings = settingsAsProperties(root.evalNode("settings"));
+      // 读取文件
       loadCustomVfsImpl(settings);
+      // 日志设置
       loadCustomLogImpl(settings);
       typeAliasesElement(root.evalNode("typeAliases"));
       pluginsElement(root.evalNode("plugins"));
       objectFactoryElement(root.evalNode("objectFactory"));
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+      // settings 加载默认设置
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      // 创建数据源
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
       typeHandlersElement(root.evalNode("typeHandlers"));
+      // 映射文件加载解析
       mappersElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -304,9 +314,13 @@ public class XMLConfigBuilder extends BaseBuilder {
     for (XNode child : context.getChildren()) {
       String id = child.getStringAttribute("id");
       if (isSpecifiedEnvironment(id)) {
+        // 事务工厂
         TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
+        // 数据源工厂（例如 DruidDataSourceFactory ）
         DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+        // 数据源
         DataSource dataSource = dsFactory.getDataSource();
+        // 包含了 事务工厂和数据源的 Environment
         Environment.Builder environmentBuilder = new Environment.Builder(id).transactionFactory(txFactory)
             .dataSource(dataSource);
         configuration.setEnvironment(environmentBuilder.build());
