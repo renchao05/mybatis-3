@@ -314,7 +314,10 @@ public class XMLConfigBuilder extends BaseBuilder {
     for (XNode child : context.getChildren()) {
       String id = child.getStringAttribute("id");
       if (isSpecifiedEnvironment(id)) {
-        // 事务工厂
+        // 事务工厂 主要职责是根据不同的数据源和环境创建 Transaction 对象
+        // MyBatis 提供了两种常见的事务工厂实现类
+        //   JdbcTransactionFactory 手动管理事务，通常直接通过 SqlSession 来进行控制（如调用 commit() 或 rollback()）。
+        //   ManagedTransactionFactory 事务的管理（提交、回滚）由外部的框架负责
         TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
         // 数据源工厂（例如 DruidDataSourceFactory ）
         DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));

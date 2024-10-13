@@ -733,18 +733,26 @@ public class Configuration {
   }
 
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+    // 确定执行器类型，如果配置文件没有指定，使用 defaultExecutorType 作为执行器类型。SIMPLE
     executorType = executorType == null ? defaultExecutorType : executorType;
     Executor executor;
+    // 根据传入的 executorType，创建具体的 Executor 实例
     if (ExecutorType.BATCH == executorType) {
+      // 批量执行 SQL 语句。会将多条 SQL 语句缓存起来，等待达到一定条件后一起发送到数据库执行
       executor = new BatchExecutor(this, transaction);
     } else if (ExecutorType.REUSE == executorType) {
+      // 用于重用预编译的 PreparedStatement，减少 SQL 预编译的开销，适合重复执行相同 SQL 的场景
       executor = new ReuseExecutor(this, transaction);
     } else {
+      // 默认的执行器类型，每次执行 SQL 都会创建新的 PreparedStatement。这种执行方式没有预编译缓存，适合简单场景
       executor = new SimpleExecutor(this, transaction);
     }
     if (cacheEnabled) {
+      // 如果开启了二级缓存，则为原始的 Executor 包装一个 CachingExecutor
+      // CachingExecutor 负责管理 MyBatis 的二级缓存，它会在查询时首先尝试从缓存中获取结果
       executor = new CachingExecutor(executor);
     }
+    // 将所有配置的插件应用到执行器上（包装）
     return (Executor) interceptorChain.pluginAll(executor);
   }
 
