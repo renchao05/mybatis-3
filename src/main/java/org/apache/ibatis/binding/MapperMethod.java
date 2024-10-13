@@ -46,7 +46,9 @@ import org.apache.ibatis.session.SqlSession;
  */
 public class MapperMethod {
 
+  // 封装了Mapper接口方法的SQL命令信息，如语句的名称statement、类型
   private final SqlCommand command;
+  // 封装了Mapper接口方法的签名信息，包括方法的返回类型、参数类型、是否有返回结果处理器等
   private final MethodSignature method;
 
   public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
@@ -58,6 +60,7 @@ public class MapperMethod {
     Object result;
     switch (command.getType()) {
       case INSERT: {
+        // 参数转换
         Object param = method.convertArgsToSqlCommandParam(args);
         result = rowCountResult(sqlSession.insert(command.getName(), param));
         break;
@@ -74,23 +77,29 @@ public class MapperMethod {
       }
       case SELECT:
         if (method.returnsVoid() && method.hasResultHandler()) {
+          // 自定义结果处理的情况（ResultHandler）
           executeWithResultHandler(sqlSession, args);
           result = null;
         } else if (method.returnsMany()) {
+          // 返回多条记录
           result = executeForMany(sqlSession, args);
         } else if (method.returnsMap()) {
+          // 返回值是 Map 类型
           result = executeForMap(sqlSession, args);
         } else if (method.returnsCursor()) {
+          // 流式查询
           result = executeForCursor(sqlSession, args);
         } else {
           Object param = method.convertArgsToSqlCommandParam(args);
           result = sqlSession.selectOne(command.getName(), param);
+          // 根据返回类型是否是Optional进行封装
           if (method.returnsOptional() && (result == null || !method.getReturnType().equals(result.getClass()))) {
             result = Optional.ofNullable(result);
           }
         }
         break;
       case FLUSH:
+        // 清空批量操作的缓冲区，返回所有 Statement 的执行结果
         result = sqlSession.flushStatements();
         break;
       default:
@@ -270,15 +279,17 @@ public class MapperMethod {
 
   public static class MethodSignature {
 
-    private final boolean returnsMany;
-    private final boolean returnsMap;
-    private final boolean returnsVoid;
-    private final boolean returnsCursor;
-    private final boolean returnsOptional;
-    private final Class<?> returnType;
-    private final String mapKey;
-    private final Integer resultHandlerIndex;
-    private final Integer rowBoundsIndex;
+    private final boolean returnsMany; // 返回类型是否是集合（如 List）
+    private final boolean returnsMap; // 返回类型是否是 Map
+    private final boolean returnsVoid; // 返回类型是否是void类型
+    private final boolean returnsCursor; // 返回类型是否是 Cursor，用于流式处理大数据集
+    private final boolean returnsOptional; // 返回类型是否是 Optional
+    private final Class<?> returnType; // 方法的返回类型
+    private final String mapKey; // 表示查询结果中的某个字段将作为 Map 的键值。这个属性通常与@MapKey注解配合使用
+    private final Integer resultHandlerIndex; // 如果方法参数中包含 ResultHandler，resultHandlerIndex 记录了该参数的位置
+    private final Integer rowBoundsIndex; // 如果方法参数中包含 RowBounds（分页参数），rowBoundsIndex 记录了该参数的位置
+    // 用于解析方法参数的名称，并将参数与 SQL 语句中的参数占位符进行映射。
+    // 特别是当使用 @Param 注解时，这个对象会解析出注解的值并映射到 SQL 参数中
     private final ParamNameResolver paramNameResolver;
 
     public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {
@@ -301,6 +312,7 @@ public class MapperMethod {
       this.paramNameResolver = new ParamNameResolver(configuration, method);
     }
 
+    // 将方法参数转换为 MyBatis 可以识别的 SQL 命令参数
     public Object convertArgsToSqlCommandParam(Object[] args) {
       return paramNameResolver.getNamedParams(args);
     }

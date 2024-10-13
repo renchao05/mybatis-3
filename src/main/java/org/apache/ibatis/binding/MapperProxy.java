@@ -80,9 +80,12 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 检查方法是否是 Object 类的方法（如 toString、hashCode、equals 等）
       if (Object.class.equals(method.getDeclaringClass())) {
+        // 是 Object 类的方法，不进行数据库查询操作，直接通过反射调用该方法，并将结果返回
         return method.invoke(this, args);
       }
+      // 通过缓存机制获取MapperMethodInvoker，然后执行MapperMethodInvoker的invoke方法
       return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
@@ -91,11 +94,17 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
+      // 先尝试从map中获取，获取不到再创建
       return MapUtil.computeIfAbsent(methodCache, method, m -> {
+        // 判断方法是否是 default 方法
         if (!m.isDefault()) {
+          // 不是 default 方法，则为普通的数据库操作方法，通过 MapperMethod 来处理
+          // PlainMethodInvoker 用于处理普通方法。它会将方法委托给 MapperMethod 进行处理
+          // MapperMethod 封装了 Mapper 接口方法的具体执行逻辑，例如解析方法参数、找到对应的 SQL 语句并最终执行
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
         try {
+          // 如果是 default 方法，DefaultMethodInvoker通过MethodHandle直接调用方法
           if (privateLookupInMethod == null) {
             return new DefaultMethodInvoker(getMethodHandleJava8(method));
           }
