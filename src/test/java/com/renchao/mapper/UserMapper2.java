@@ -2,6 +2,7 @@ package com.renchao.mapper;
 
 import com.renchao.domain.User;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * @author ren_chao
@@ -10,5 +11,9 @@ import org.apache.ibatis.annotations.Select;
 public interface UserMapper2 {
   @Select("select * from user where id = #{id}")
   User getUserById(int id);
+
+  @Update("update user set name = #{name} where id = 100")
+  int updateUserById(String name);
+
 
 }

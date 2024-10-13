@@ -72,6 +72,7 @@ public class CachingExecutor implements Executor {
 
   @Override
   public int update(MappedStatement ms, Object parameterObject) throws SQLException {
+    // 根据配置清理二级缓存，根据crud标签上属性flushCache="true"(select语句默认是false)
     flushCacheIfRequired(ms);
     return delegate.update(ms, parameterObject);
   }

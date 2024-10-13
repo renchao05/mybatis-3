@@ -21,12 +21,15 @@ public class Demo01 {
     InputStream inputStream = Resources.getResourceAsStream("mybatis-config.xml");
     SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-      UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-      User user = mapper.selectByPrimaryKey(100L);
+//      UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+//      User user = mapper.selectByPrimaryKey(100L);
 
-//      UserMapper2 mapper = sqlSession.getMapper(UserMapper2.class);
+      UserMapper2 mapper = sqlSession.getMapper(UserMapper2.class);
+      int i = mapper.updateUserById("大妖怪");
+      sqlSession.commit();
+      System.out.println(i);
 //      User user = mapper.getUserById(100);
-      System.out.println(user);
+//      System.out.println(user);
     }
   }
 }
