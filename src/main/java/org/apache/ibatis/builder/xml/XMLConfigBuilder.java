@@ -399,35 +399,45 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  // 循环遍历 <mappers> 标签的所有的子节点
+  // 不同的定义方式的扫描，最终都是调用 addMapper()方法（添加到 MapperRegistry）。这个方法和 getMapper() 对应
   private void mappersElement(XNode context) throws Exception {
     if (context == null) {
       return;
     }
     for (XNode child : context.getChildren()) {
+      // 处理 <package> 节点
       if ("package".equals(child.getName())) {
         String mapperPackage = child.getStringAttribute("name");
+        // 这个方法会扫描给定的包，并注册该包下所有带有 @Mapper 注解的接口，作为映射器。
         configuration.addMappers(mapperPackage);
       } else {
         String resource = child.getStringAttribute("resource");
         String url = child.getStringAttribute("url");
         String mapperClass = child.getStringAttribute("class");
+        // 第一种情况：resource 存在，而 url 和 class 不存在
         if (resource != null && url == null && mapperClass == null) {
           ErrorContext.instance().resource(resource);
           try (InputStream inputStream = Resources.getResourceAsStream(resource)) {
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource,
                 configuration.getSqlFragments());
+            // 解析xml映射文件
             mapperParser.parse();
           }
+        // 第二种情况：url 存在，而 resource 和 class 不存在
         } else if (resource == null && url != null && mapperClass == null) {
           ErrorContext.instance().resource(url);
           try (InputStream inputStream = Resources.getUrlAsStream(url)) {
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url,
                 configuration.getSqlFragments());
+            // 解析xml映射文件
             mapperParser.parse();
           }
+        // 第三种情况：class 存在，而 resource 和 url 不存在
         } else if (resource == null && url == null && mapperClass != null) {
           Class<?> mapperInterface = Resources.classForName(mapperClass);
           configuration.addMapper(mapperInterface);
+        // 否则抛异常
         } else {
           throw new BuilderException(
               "A mapper element may only specify a url, resource or class, but not more than one.");

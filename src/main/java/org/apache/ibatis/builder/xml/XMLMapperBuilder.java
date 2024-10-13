@@ -87,6 +87,7 @@ public class XMLMapperBuilder extends BaseBuilder {
   private XMLMapperBuilder(XPathParser parser, Configuration configuration, String resource,
       Map<String, XNode> sqlFragments) {
     super(configuration);
+    // 封装映射文件公共部分的相关信息，后面每个crud标签会利用这些信息生成各自的MappedStatement对象
     this.builderAssistant = new MapperBuilderAssistant(configuration, resource);
     this.parser = parser;
     this.sqlFragments = sqlFragments;
@@ -95,12 +96,17 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   public void parse() {
     if (!configuration.isResourceLoaded(resource)) {
+      // 解析xml映射文件，会将映射文件中的每个crud标签分别解析为对应MappedStatement保存到Configuration中
       configurationElement(parser.evalNode("/mapper"));
       configuration.addLoadedResource(resource);
+      // 将映射文件对应的接口保存到Configuration中
       bindMapperForNamespace();
     }
+    // 处理上面解析失败的 <resultMap> 节点
     configuration.parsePendingResultMaps(false);
+    // 处理上面解析失败的 <cache-ref> 节点
     configuration.parsePendingCacheRefs(false);
+    // 处理上面解析失败的 crud 节点
     configuration.parsePendingStatements(false);
   }
 
@@ -120,6 +126,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       parameterMapElement(context.evalNodes("/mapper/parameterMap"));
       resultMapElements(context.evalNodes("/mapper/resultMap"));
       sqlElement(context.evalNodes("/mapper/sql"));
+      // 为每个增删改查标签生成对应的MappedStatement对象
       buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
@@ -138,6 +145,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       final XMLStatementBuilder statementParser = new XMLStatementBuilder(configuration, builderAssistant, context,
           requiredDatabaseId);
       try {
+        // 解析增删改查标签，封装MappedStatement对象
         statementParser.parseStatementNode();
       } catch (IncompleteElementException e) {
         configuration.addIncompleteStatement(statementParser);

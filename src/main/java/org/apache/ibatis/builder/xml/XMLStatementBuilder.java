@@ -117,6 +117,7 @@ public class XMLStatementBuilder extends BaseBuilder {
     String resultSets = context.getStringAttribute("resultSets");
     boolean dirtySelect = context.getBooleanAttribute("affectData", Boolean.FALSE);
 
+    // 最后封装为MappedStatement对象，并添加到configuration中
     builderAssistant.addMappedStatement(id, sqlSource, statementType, sqlCommandType, fetchSize, timeout, parameterMap,
         parameterTypeClass, resultMap, resultTypeClass, resultSetTypeEnum, flushCache, useCache, resultOrdered,
         keyGenerator, keyProperty, keyColumn, databaseId, langDriver, resultSets, dirtySelect);

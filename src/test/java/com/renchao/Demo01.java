@@ -2,6 +2,7 @@ package com.renchao;
 
 import com.renchao.domain.User;
 import com.renchao.mapper.UserMapper;
+import com.renchao.mapper.UserMapper2;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -21,8 +22,11 @@ public class Demo01 {
     SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
       UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-      List<User> users = mapper.selectUser();
-      System.out.println(users);
+      User user = mapper.selectByPrimaryKey(100L);
+
+//      UserMapper2 mapper = sqlSession.getMapper(UserMapper2.class);
+//      User user = mapper.getUserById(100);
+      System.out.println(user);
     }
   }
 }

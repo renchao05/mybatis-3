@@ -24,6 +24,7 @@
     </environments>
 
     <mappers>
-        <mapper resource="mapper/UserMapper.xml"/>
+<!--        <mapper resource="mapper/UserMapper.xml"/>-->
+        <mapper class="com.renchao.mapper.UserMapper2"/>
     </mappers>
 </configuration>
