@@ -86,7 +86,9 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler)
       throws SQLException {
+    // BoundSql包含了SQL语句的字符串、参数、参数映射等信息
     BoundSql boundSql = ms.getBoundSql(parameterObject);
+    // 根据SQL语句、参数、分页和BoundSql的详细信息生成一个唯一标识符
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
@@ -94,14 +96,19 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler,
       CacheKey key, BoundSql boundSql) throws SQLException {
+    // 获取二级缓存
     Cache cache = ms.getCache();
     if (cache != null) {
+      // 根据配置刷新缓存
       flushCacheIfRequired(ms);
+      // 如果配置使用缓存，且没有ResultHandler（ResultHandler用于处理流式结果集，缓存不能用）
       if (ms.isUseCache() && resultHandler == null) {
+        // 检查语句中是否有OUT参数，确保不能有输出参数用于缓存（如果有输出参数，查询的结果无法预测且不能缓存）
         ensureNoOutParams(ms, boundSql);
         @SuppressWarnings("unchecked")
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
+          // 如果缓存中没有结果，调用delegate.query()执行数据库查询，并将结果存入缓存中
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
@@ -166,6 +173,7 @@ public class CachingExecutor implements Executor {
     delegate.clearLocalCache();
   }
 
+  // 根据crud标签上属性flushCache="true"(select语句默认是false)是否进行清理缓存
   private void flushCacheIfRequired(MappedStatement ms) {
     Cache cache = ms.getCache();
     if (cache != null && ms.isFlushCacheRequired()) {

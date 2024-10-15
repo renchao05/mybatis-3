@@ -151,17 +151,21 @@ public abstract class BaseExecutor implements Executor {
     }
     List<E> list;
     try {
+      // 使用queryStack来记录嵌套的查询调用次数，以处理递归查询的场景（collection标签分步查询时）
       queryStack++;
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
+        // 处理存储过程中的输出参数（OUT和INOUT参数）的缓存
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 如果缓存中没有结果，从数据库执行查询
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
       queryStack--;
     }
     if (queryStack == 0) {
+      // 处理延迟加载并清空延迟加载队列
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }
@@ -169,6 +173,7 @@ public abstract class BaseExecutor implements Executor {
       deferredLoads.clear();
       if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
         // issue #482
+        // 清空缓存（STATEMENT级别情况下）
         clearLocalCache();
       }
     }
@@ -332,6 +337,7 @@ public abstract class BaseExecutor implements Executor {
   private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds,
       ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
     List<E> list;
+    // 向一级缓存放入占位符，表示该查询正在执行，避免重复的数据库查询，防止无限递归
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
@@ -339,6 +345,7 @@ public abstract class BaseExecutor implements Executor {
       localCache.removeObject(key);
     }
     localCache.putObject(key, list);
+    // 如果是存储过程（CALLABLE 类型的语句），将参数存储在localOutputParameterCache中
     if (ms.getStatementType() == StatementType.CALLABLE) {
       localOutputParameterCache.putObject(key, parameter);
     }

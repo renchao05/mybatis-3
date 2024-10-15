@@ -62,8 +62,16 @@ public class SimpleExecutor extends BaseExecutor {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
+      // StatementHandler接口，用于处理 JDBC 语句的生成、参数设置和执行查询等操作
+      // wrapper：Executor包装类（用于插件的扩展）
+      // ms：MappedStatement，包含 SQL 语句的详细信息
+      // parameter：查询参数
+      // rowBounds：RowBounds，用于分页控制
+      // resultHandler：结果处理器
+      // boundSql：封装了解析后的SQL语句和参数信息
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler,
           boundSql);
+      // 准备SQL语句，将SQL语句和参数绑定到Statement对象
       stmt = prepareStatement(handler, ms.getStatementLog());
       return handler.query(stmt, resultHandler);
     } finally {
