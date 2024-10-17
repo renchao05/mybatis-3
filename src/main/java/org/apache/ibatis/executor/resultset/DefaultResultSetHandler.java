@@ -941,10 +941,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   private Object getNestedQueryMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping,
       ResultLoaderMap lazyLoader, String columnPrefix) throws SQLException {
-    final String nestedQueryId = propertyMapping.getNestedQueryId();
-    final String property = propertyMapping.getProperty();
-    final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId);
-    final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType();
+    final String nestedQueryId = propertyMapping.getNestedQueryId(); // 获取嵌套查询ID
+    final String property = propertyMapping.getProperty(); // 当前属性的名称
+    final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId); // 嵌套查询的MappedStatement
+    final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType(); // 嵌套查询所需的参数类型
+    // 根据当前的ResultSet和propertyMapping准备嵌套查询的参数
     final Object nestedQueryParameterObject = prepareParameterForNestedQuery(rs, propertyMapping,
         nestedQueryParameterType, columnPrefix);
     Object value = null;
@@ -953,16 +954,22 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT,
           nestedBoundSql);
       final Class<?> targetType = propertyMapping.getJavaType();
+      // 检查是否存在该嵌套查询的缓存结果
       if (executor.isCached(nestedQuery, key)) {
+        // 缓存中已经有了结果，利用延迟加载机制设置该属性，并标记该属性为DEFERRED（延迟加载）
         executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
         value = DEFERRED;
       } else {
+        // 缓存中没有，利用ResultLoader负责执行嵌套查询并加载结果
         final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery,
             nestedQueryParameterObject, targetType, key, nestedBoundSql);
+        // 检查是否配置了懒加载
         if (propertyMapping.isLazy()) {
+          // 配置了懒加载，添加到ResultLoaderMap中，后面调用的时候再加载
           lazyLoader.addLoader(property, metaResultObject, resultLoader);
           value = DEFERRED;
         } else {
+          // 没有配置则直接查询并加载结果返回
           value = resultLoader.loadResult();
         }
       }

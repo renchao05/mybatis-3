@@ -165,7 +165,8 @@ public abstract class BaseExecutor implements Executor {
       queryStack--;
     }
     if (queryStack == 0) {
-      // 处理延迟加载并清空延迟加载队列
+      // 处理延迟加载（不是配置中的fetchType="lazy"的懒加载）
+      // 处理嵌套查询防止出现无限递归的情况，比如 a -> b -> a 在这里到b的时候，需要依赖a，从缓存可以找到a，就会创建DeferredLoad进行加载
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }
@@ -193,9 +194,11 @@ public abstract class BaseExecutor implements Executor {
       throw new ExecutorException("Executor was closed.");
     }
     DeferredLoad deferredLoad = new DeferredLoad(resultObject, property, key, localCache, configuration, targetType);
+    // 检查当前能不能加载（缓存中不是占位符就可以直接加载）
     if (deferredLoad.canLoad()) {
       deferredLoad.load();
     } else {
+      // 当前不能加载的话，先放入延迟加载队列。整条查询完毕后再加载
       deferredLoads.add(new DeferredLoad(resultObject, property, key, localCache, configuration, targetType));
     }
   }
